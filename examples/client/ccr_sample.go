@@ -234,33 +234,50 @@ func sendInitiate(c diam.Conn, cfg *sm.Settings) error {
 				}),
 			}})
 	*/
-	sid := "ocs1p;1587022628;275387;439986;1590579224;1097744"
-	// m := diam.NewRequest(helloMessage, helloApplication, nil)
 	m := diam.NewRequest(diam.CreditControl, 4, c.Dictionary())
-	m.NewAVP(avp.SessionID, avp.Mbit, 0, datatype.UTF8String(sid))
-	m.NewAVP(avp.OriginHost, avp.Mbit, 0, cfg.OriginHost)
-	m.NewAVP(avp.OriginRealm, avp.Mbit, 0, cfg.OriginRealm)
-	m.NewAVP(avp.DestinationRealm, avp.Mbit, 0, datatype.UTF8String("ocs.mnc82.mcc418.3gppnetwork.org"))
-	m.NewAVP(avp.AuthApplicationID, avp.Mbit, 0, datatype.Unsigned32(4))
-	m.NewAVP(avp.ServiceContextID, avp.Mbit, 0, datatype.UTF8String("ocs@iqonline.com"))
-	m.NewAVP(avp.CCRequestType, avp.Mbit, 0, datatype.Unsigned32(1))
-	m.NewAVP(avp.CCRequestNumber, avp.Mbit, 0, datatype.Unsigned32(0))
-	m.NewAVP(avp.DestinationHost, avp.Mbit, 0, datatype.UTF8String("vepcocs"))
-	m.NewAVP(avp.UserName, avp.Mbit, 0, datatype.UTF8String("internet"))
-	m.NewAVP(avp.OriginStateID, avp.Mbit, 0, datatype.Unsigned32(25))
-	m.NewAVP(avp.EventTimestamp, avp.Mbit, 0, datatype.Time(time.Unix(1377093974, 0)))
+	// sid := "ocs1p;1587022628;275387;439986;1590579224;1097744"
+	// m.NewAVP(avp.SessionID, avp.Mbit, 0, datatype.UTF8String(sid))
+	// m.NewAVP(avp.OriginHost, avp.Mbit, 0, cfg.OriginHost)
+	// m.NewAVP(avp.OriginRealm, avp.Mbit, 0, cfg.OriginRealm)
+	// m.NewAVP(avp.DestinationRealm, avp.Mbit, 0, datatype.DiameterIdentity("ocs.mnc82.mcc418.3gppnetwork.org"))
+	// m.NewAVP(avp.AuthApplicationID, avp.Mbit, 0, datatype.Unsigned32(4))
+	// m.NewAVP(avp.ServiceContextID, avp.Mbit, 0, datatype.UTF8String("ocs@iqonline.com"))
+	// m.NewAVP(avp.CCRequestType, avp.Mbit, 0, datatype.Enumerated(1))
+	// m.NewAVP(avp.CCRequestNumber, avp.Mbit, 0, datatype.Unsigned32(0))
+	// m.NewAVP(avp.DestinationHost, avp.Mbit, 0, datatype.DiameterIdentity("vepcocs"))
+	// m.NewAVP(avp.UserName, avp.Mbit, 0, datatype.UTF8String("internet"))
+	// m.NewAVP(avp.OriginStateID, avp.Mbit, 0, datatype.Unsigned32(25))
+	// m.NewAVP(avp.EventTimestamp, avp.Mbit, 0, datatype.Time(time.Unix(1377093974, 0)))
 	m.NewAVP(avp.SubscriptionID, avp.Mbit, 0, &diam.GroupedAVP{
 		AVP: []*diam.AVP{
-			diam.NewAVP(avp.SubscriptionIDType, avp.Mbit, 0, datatype.Unsigned32(0)),
+			diam.NewAVP(avp.SubscriptionIDType, avp.Mbit, 0, datatype.Enumerated(0)),
 			diam.NewAVP(avp.SubscriptionIDData, avp.Mbit, 0, datatype.UTF8String("963500155039")),
 		},
 	})
 	m.NewAVP(avp.SubscriptionID, avp.Mbit, 0, &diam.GroupedAVP{
 		AVP: []*diam.AVP{
-			diam.NewAVP(avp.SubscriptionIDType, avp.Mbit, 0, datatype.Unsigned32(1)),
+			diam.NewAVP(avp.SubscriptionIDType, avp.Mbit, 0, datatype.Enumerated(1)),
 			diam.NewAVP(avp.SubscriptionIDData, avp.Mbit, 0, datatype.UTF8String("417500011046039")),
 		},
 	})
+	// m.NewAVP(avp.MultipleServicesIndicator, avp.Mbit, 0, datatype.Enumerated(1))
+	// m.NewAVP(avp.MultipleServicesCreditControl, avp.Mbit, 0, &diam.GroupedAVP{
+	// 	AVP: []*diam.AVP{
+	// 		diam.NewAVP(avp.RequestedServiceUnit, avp.Mbit, 0, &diam.GroupedAVP{
+	// 			AVP: []*diam.AVP{
+	// 				diam.NewAVP(avp.CCTotalOctets, avp.Mbit, 0, datatype.Unsigned64(5242880)),
+	// 			},
+	// 		}),
+	// 		diam.NewAVP(avp.ServiceIdentifier, avp.Mbit, 0, datatype.Unsigned32(999)),
+	// 		diam.NewAVP(avp.RatingGroup, avp.Mbit, 0, datatype.Unsigned32(999)),
+	// 	},
+	// })
+	// m.NewAVP(avp.UserEquipmentInfo, avp.Mbit, 0, &diam.GroupedAVP{
+	// 	AVP: []*diam.AVP{
+	// 		diam.NewAVP(avp.UserEquipmentInfoType, avp.Mbit, 0, datatype.Enumerated(0)),
+	// 		diam.NewAVP(avp.UserEquipmentInfoValue, avp.Mbit, 0, datatype.OctetString("33353739363531303137313934383031")),
+	// 	},
+	// })
 	log.Printf("Sending HMR to %s\n%s", c.RemoteAddr(), m)
 	_, err := m.WriteTo(c)
 	return err

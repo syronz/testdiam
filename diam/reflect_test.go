@@ -175,6 +175,8 @@ func TestUnmarshalGrouped(t *testing.T) {
 	if err := m.Unmarshal(&d); err != nil {
 		t.Fatal(err)
 	}
+	// fmt.Printf("\n$$$$$$$$$$$$$$$$$ %+v\n", m)
+	// fmt.Printf("\n+++++++++++++++++ %+v\n", d)
 	if v, ok := d.VSA1.Data.(*GroupedAVP); !ok {
 		t.Fatalf("Unexpected value. Want Grouped, have %v", d.VSA1)
 	} else if len(v.AVP) != 2 { // There must be 2 AVPs in it.

@@ -63,7 +63,42 @@ CCR affirm -> cgrates [INITIAL_REQUEST]
     AVP: User-Equipment-Info(458) l=44 f=-M-
       AVP: User-Equipment-Info-Type(459) l=12 f=-M- val=IMEISV (0)
       AVP: User-Equipment-Info-Value(460) l=24 f=-M- val=33353739363531303137313934383031
+
     AVP: Service-Information(873) l=652 f=VM- vnd=TGPP
+      AVP: PS-Information(874) l=640 f=VM- vnd=TGPP
+        AVP: 3GPP-Charging-Id(2) l=16 f=VM- vnd=TGPP val=00012800
+        AVP: PDN-Connection-Charging-ID(2050) l=16 f=VM- vnd=TGPP val=75776
+        AVP: 3GPP-PDP-Type(3) l=16 f=VM- vnd=TGPP val=IPv4 (0)
+        AVP: PDP-Address(1227) l=18 f=VM- vnd=TGPP val=10.168.10.1
+        AVP: Dynamic-Address-Flag(2051) l=16 f=VM- vnd=TGPP val=Dynamic (1)
+        AVP: QoS-Information(1016) l=204 f=VM- vnd=TGPP
+          AVP: QoS-Class-Identifier(1028) l=16 f=VM- vnd=TGPP val=QCI_9 (9)
+          AVP: Max-Requested-Bandwidth-UL(516) l=16 f=VM- vnd=TGPP val=0
+          AVP: Max-Requested-Bandwidth-DL(515) l=16 f=VM- vnd=TGPP val=0
+          AVP: Guaranteed-Bitrate-UL(1026) l=16 f=VM- vnd=TGPP val=0
+          AVP: Guaranteed-Bitrate-DL(1025) l=16 f=VM- vnd=TGPP val=0
+          AVP: Bearer-Identifier(1020) l=17 f=VM- vnd=TGPP val=3735373736
+          AVP: Allocation-Retention-Priority(1034) l=60 f=V-- vnd=TGPP
+          AVP: APN-Aggregate-Max-Bitrate-UL(1041) l=16 f=V-- vnd=TGPP val=1000000000
+          AVP: APN-Aggregate-Max-Bitrate-DL(1040) l=16 f=V-- vnd=TGPP val=1000000000
+        AVP: 3GPP-GPRS-Negotiated-QoS-Profile(5) l=35 f=VM- vnd=TGPP val=08-0409000F4240000F4240
+        AVP: 3GPP-IMSI-MCC-MNC(8) l=17 f=VM- vnd=TGPP val=41750
+        AVP: IMSI-Unauthenticated-Flag(2308) l=16 f=VM- vnd=TGPP val=Authenticated (0)
+        AVP: 3GPP-GGSN-MCC-MNC(9) l=17 f=VM- vnd=TGPP val=41750
+        AVP: 3GPP-NSAPI(10) l=13 f=VM- vnd=TGPP val=5
+        AVP: Called-Station-Id(30) l=13 f=-M- val=test2
+        AVP: 3GPP-Selection-Mode(12) l=13 f=VM- vnd=TGPP val=0
+        AVP: 3GPP-Charging-Characteristics(13) l=16 f=VM- vnd=TGPP val=0000
+        AVP: 3GPP-SGSN-MCC-MNC(18) l=17 f=VM- vnd=TGPP val=41750
+        AVP: 3GPP-MS-TimeZone(23) l=14 f=VM- vnd=TGPP val=Timezone: GMT + 4 hours 0 minutes +1 hour adjustment for Daylight Saving Time
+        AVP: Charging-Rule-Base-Name(1004) l=18 f=VM- vnd=TGPP val=CI_One
+        AVP: 3GPP-User-Location-Info(22) l=25 f=VM- vnd=TGPP val=MCC 417 Syrian Arab Republic, MNC 50 , ECGI 0x4e2014
+        AVP: 3GPP-RAT-Type(21) l=13 f=VM- vnd=TGPP val=06
+        AVP: PDP-Context-Type(1247) l=16 f=VM- vnd=TGPP val=PRIMARY (0)
+        AVP: 3GPP-IMEISV(20) l=28 f=VM- vnd=TGPP val=8670700211943855
+        AVP: SGSN-Address(1228) l=18 f=VM- vnd=TGPP val=172.22.21.8
+        AVP: GGSN-Address(847) l=18 f=VM- vnd=TGPP val=172.22.43.10
+
 
 // ----------------------------------------------
 
@@ -161,6 +196,17 @@ CCA cgrates -> affirm [INITIAL_REQUEST]
       AVP: Service-Identifier(439) l=12 f=-M- val=999
       AVP: Validity-Time(448) l=12 f=-M- val=600
       AVP: Result-Code(268) l=12 f=-M- val=DIAMETER_SUCCESS (2001)
+    ???????
+    AVP: Multiple-Services-Credit-Control(456) l=80 f=-M-
+      AVP: Final-Unit-Indication(430) l=68 f=-M-
+        AVP: Final-Unit-Action(449) l=12 f=-M- val=REDIRECT (1)
+        AVP: Redirect-Server(434) l=48 f=-M-
+          AVP: Redirect-Address-Type(433) l=12 f=-M- val=URL (2)
+          AVP: Redirect-Server-Address(435) l=27 f=-M- val=http://my.rcell.me/
+      AVP: Rating-Group(432) l=12 f=-M- val=999
+      AVP: Service-Identifier(439) l=12 f=-M- val=999
+      AVP: Result-Code(268) l=12 f=-M- val=DIAMETER_CREDIT_LIMIT_REACHED (4012)
+
 
 
   [UPDATE_REQUEST]

@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -131,30 +132,53 @@ func handleHMR(silent bool) diam.HandlerFunc {
 }
 
 func handleCCR(silent bool) diam.HandlerFunc {
-	type HelloRequest struct {
-		SessionID        datatype.UTF8String       `avp:"Session-Id"`
-		OriginHost       datatype.DiameterIdentity `avp:"Origin-Host"`
-		OriginRealm      datatype.DiameterIdentity `avp:"Origin-Realm"`
-		DestinationRealm datatype.DiameterIdentity `avp:"Destination-Realm"`
-		DestinationHost  datatype.DiameterIdentity `avp:"Destination-Host"`
-		UserName         string                    `avp:"User-Name"`
+
+	type SubscriptionIDSTRUCT struct {
+		SubscriptionIDType datatype.Enumerated `avp:"Subscription-Id-Type"`
+		SubscriptionIDData datatype.UTF8String `avp:"Subscription-Id-Data"`
+	}
+
+	type CCRPacket struct {
+		// SessionID         datatype.UTF8String       `avp:"Session-Id"`
+		// OriginHost        datatype.DiameterIdentity `avp:"Origin-Host"`
+		// OriginRealm       datatype.DiameterIdentity `avp:"Origin-Realm"`
+		// DestinationRealm  datatype.DiameterIdentity `avp:"Destination-Realm"`
+		// AuthApplicationID datatype.Unsigned32       `avp:"Auth-Application-Id"`
+		// ServiceContextID  string                    `avp:"Service-Context-Id"`
+		// CCRequestType     datatype.Enumerated       `avp:"CC-Request-Type"`
+		// CCRequestNumber   datatype.Unsigned32       `avp:"CC-Request-Number"`
+		// DestinationHost   datatype.DiameterIdentity `avp:"Destination-Host"`
+		// UserName          string                    `avp:"User-Name"`
+		// OriginStateID     datatype.Unsigned32       `avp:"Origin-State-Id"`
+		// EventTimestamp    datatype.Time             `avp:"Event-Timestamp"`
+		SubscriptionID1 SubscriptionIDSTRUCT `avp:"Subscription-Id"`
+		SubscriptionID2 SubscriptionIDSTRUCT `avp:"Subscription-Id"`
+		// SubscriptionID3   struct {
+		// 	SubscriptionIDType datatype.Enumerated `avp:"Subscription-Id-Type"`
+		// 	SubscriptionIDData datatype.UTF8String `avp:"Subscription-Id-Data"`
+		// } `avp:"Subscription-Id"`
 	}
 	return func(c diam.Conn, m *diam.Message) {
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>------------")
 		if !silent {
 			log.Printf("Received CCR from %s:\n%s", c.RemoteAddr(), m)
 		}
-		var hmr HelloRequest
-		if err := m.Unmarshal(&hmr); err != nil {
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>------------2")
+		var ccr CCRPacket
+		if err := m.Unmarshal(&ccr); err != nil {
 			log.Printf("Failed to parse message from %s: %s\n%s",
 				c.RemoteAddr(), err, m)
 			return
 		}
+
+		fmt.Printf("\n+++++++++++++++++++++++++++++++++++ %+v\n", ccr)
+		fmt.Println("********************", ccr.SubscriptionID1)
 		a := m.Answer(diam.Success)
-		a.NewAVP(avp.SessionID, avp.Mbit, 0, hmr.SessionID)
-		a.NewAVP(avp.OriginHost, avp.Mbit, 0, hmr.DestinationHost)
-		a.NewAVP(avp.OriginRealm, avp.Mbit, 0, hmr.DestinationRealm)
-		a.NewAVP(avp.DestinationRealm, avp.Mbit, 0, hmr.OriginRealm)
-		a.NewAVP(avp.DestinationHost, avp.Mbit, 0, hmr.OriginHost)
+		// a.NewAVP(avp.SessionID, avp.Mbit, 0, ccr.SessionID)
+		// a.NewAVP(avp.OriginHost, avp.Mbit, 0, ccr.DestinationHost)
+		// a.NewAVP(avp.OriginRealm, avp.Mbit, 0, ccr.DestinationRealm)
+		// a.NewAVP(avp.DestinationRealm, avp.Mbit, 0, ccr.OriginRealm)
+		// a.NewAVP(avp.DestinationHost, avp.Mbit, 0, ccr.OriginHost)
 		_, err := a.WriteTo(c)
 		if err != nil {
 			log.Printf("Failed to write message to %s: %s\n%s\n",

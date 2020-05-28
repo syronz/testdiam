@@ -52,11 +52,12 @@ func init() {
 func main() {
 	addr := flag.String("addr", "localhost:3868", "address in form of ip:port to connect to")
 	ssl := flag.Bool("ssl", false, "connect to server using tls")
-	host := flag.String("diam_host", "client", "diameter identity host")
-	realm := flag.String("diam_realm", "go-diameter", "diameter identity realm")
+	host := flag.String("diam_host", "ocs1p", "diameter identity host")
+	realm := flag.String("diam_realm", "ocs.mnc82.mcc418.3gppnetwork.org", "diameter identity realm")
 	certFile := flag.String("cert_file", "", "tls client certificate file (optional)")
 	keyFile := flag.String("key_file", "", "tls client key file (optional)")
 	hello := flag.Bool("hello", false, "send a hello message, wait for the response and disconnect")
+	initiate := flag.Bool("initiate", false, "send a initiate message, wait for the response and disconnect")
 	bench := flag.Bool("bench", false, "benchmark the server by sending ACR messages")
 	benchCli := flag.Int("bench_clients", 1, "number of client connections")
 	benchMsgs := flag.Int("bench_msgs", 1000, "number of ACR messages to send")
@@ -141,6 +142,23 @@ func main() {
 		return
 	}
 
+	if *initiate {
+		c, err := connect()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = sendInitiate(c, cfg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			log.Fatal("timeout: no hello answer received")
+		}
+		return
+	}
+
 	// Makes a persisent connection with back-off.
 	log.Println("Use wireshark to see the messages, or try -hello")
 	backoff := 1
@@ -193,6 +211,56 @@ func sendHMR(c diam.Conn, cfg *sm.Settings) error {
 	m.NewAVP(avp.DestinationRealm, avp.Mbit, 0, meta.OriginRealm)
 	m.NewAVP(avp.DestinationHost, avp.Mbit, 0, meta.OriginHost)
 	m.NewAVP(avp.UserName, avp.Mbit, 0, datatype.UTF8String("foobar"))
+	log.Printf("Sending HMR to %s\n%s", c.RemoteAddr(), m)
+	_, err := m.WriteTo(c)
+	return err
+}
+
+func sendInitiate(c diam.Conn, cfg *sm.Settings) error {
+	// meta, ok := smpeer.FromContext(c.Context())
+	// if !ok {
+	// return errors.New("peer metadata unavailable")
+	// }
+
+	/*
+		m.NewAVP("Session-Id", avp.Mbit, 0, datatype.UTF8String("890f81bee22a0dfddc8b9037eb367781cea1f328"))
+		m.NewAVP("Service-Information", avp.Mbit, 10415, &GroupedAVP{
+			AVP: []*AVP{
+				NewAVP(20300, avp.Mbit, 20300, &GroupedAVP{ // IN-Information
+					AVP: []*AVP{
+						NewAVP(20339, avp.Mbit, 20300, datatype.Unsigned32(0)),  // Charge-Flow-Type
+						NewAVP(20302, avp.Mbit, 20300, datatype.UTF8String("")), // Calling-Vlr-Number
+					},
+				}),
+			}})
+	*/
+	sid := "ocs1p;1587022628;275387;439986;1590579224;1097744"
+	// m := diam.NewRequest(helloMessage, helloApplication, nil)
+	m := diam.NewRequest(diam.CreditControl, 4, c.Dictionary())
+	m.NewAVP(avp.SessionID, avp.Mbit, 0, datatype.UTF8String(sid))
+	m.NewAVP(avp.OriginHost, avp.Mbit, 0, cfg.OriginHost)
+	m.NewAVP(avp.OriginRealm, avp.Mbit, 0, cfg.OriginRealm)
+	m.NewAVP(avp.DestinationRealm, avp.Mbit, 0, datatype.UTF8String("ocs.mnc82.mcc418.3gppnetwork.org"))
+	m.NewAVP(avp.AuthApplicationID, avp.Mbit, 0, datatype.Unsigned32(4))
+	m.NewAVP(avp.ServiceContextID, avp.Mbit, 0, datatype.UTF8String("ocs@iqonline.com"))
+	m.NewAVP(avp.CCRequestType, avp.Mbit, 0, datatype.Unsigned32(1))
+	m.NewAVP(avp.CCRequestNumber, avp.Mbit, 0, datatype.Unsigned32(0))
+	m.NewAVP(avp.DestinationHost, avp.Mbit, 0, datatype.UTF8String("vepcocs"))
+	m.NewAVP(avp.UserName, avp.Mbit, 0, datatype.UTF8String("internet"))
+	m.NewAVP(avp.OriginStateID, avp.Mbit, 0, datatype.Unsigned32(25))
+	m.NewAVP(avp.EventTimestamp, avp.Mbit, 0, datatype.Time(time.Unix(1377093974, 0)))
+	m.NewAVP(avp.SubscriptionID, avp.Mbit, 0, &diam.GroupedAVP{
+		AVP: []*diam.AVP{
+			diam.NewAVP(avp.SubscriptionIDType, avp.Mbit, 0, datatype.Unsigned32(0)),
+			diam.NewAVP(avp.SubscriptionIDData, avp.Mbit, 0, datatype.UTF8String("963500155039")),
+		},
+	})
+	m.NewAVP(avp.SubscriptionID, avp.Mbit, 0, &diam.GroupedAVP{
+		AVP: []*diam.AVP{
+			diam.NewAVP(avp.SubscriptionIDType, avp.Mbit, 0, datatype.Unsigned32(1)),
+			diam.NewAVP(avp.SubscriptionIDData, avp.Mbit, 0, datatype.UTF8String("417500011046039")),
+		},
+	})
 	log.Printf("Sending HMR to %s\n%s", c.RemoteAddr(), m)
 	_, err := m.WriteTo(c)
 	return err
@@ -276,7 +344,8 @@ func sendACR(c diam.Conn, cfg *sm.Settings, n int) {
 			datatype.UTF8String(strconv.Itoa(i)))
 		m.NewAVP(avp.OriginHost, avp.Mbit, 0, cfg.OriginHost)
 		m.NewAVP(avp.OriginRealm, avp.Mbit, 0, cfg.OriginRealm)
-		m.NewAVP(avp.DestinationRealm, avp.Mbit, 0, meta.OriginRealm)
+		// m.NewAVP(avp.DestinationRealm, avp.Mbit, 0, meta.OriginRealm)
+		m.NewAVP(avp.DestinationRealm, avp.Mbit, 0, datatype.UTF8String("OK"))
 		m.NewAVP(avp.AccountingRecordType, avp.Mbit, 0, eventRecord)
 		m.NewAVP(avp.AccountingRecordNumber, avp.Mbit, 0,
 			datatype.Unsigned32(i))

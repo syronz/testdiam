@@ -1,4 +1,4 @@
-affirm CER request
+CER affirm -> cgrates
 
     Origin-Host (264): "ocs1p"
     Origin-Realm (296): ocs.mnc82.mcc418.3gppnetwork.org
@@ -13,7 +13,7 @@ affirm CER request
 
 // ----------------------------------------------
 
-CEA from cgrates
+CEA cgrates -> affirm
 
     Result-Code (268): DIAMETER_SUCCESS (2001)
     Origin-Host (264): ocs.iqonline.com

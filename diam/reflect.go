@@ -6,7 +6,6 @@ package diam
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -384,7 +383,7 @@ func scanStruct(m *Message, field reflect.Value, avps []*AVP) error {
 		if !exists {
 			continue
 		}
-		fmt.Println("::::::::::::::::::::::3", n, avps)
+		// fmt.Println("::::::::::::::::::::::3", n, avps)
 		//log.Println("Handling", f, bt)
 		unmarshal(m, f, avps)
 	}

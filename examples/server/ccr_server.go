@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"regexp"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -138,31 +141,60 @@ func handleCCR(silent bool) diam.HandlerFunc {
 		SubscriptionIDData datatype.UTF8String `avp:"Subscription-Id-Data"`
 	}
 
+	type RSUnitSTRUCT struct {
+		CCTotalOctets datatype.Unsigned64 `avp:"CC-Total-Octets"`
+	}
+
+	type MSCControlSTRUCT struct {
+		RequestedServiceUnit RSUnitSTRUCT        `avp:"Requested-Service-Unit"`
+		ServiceIdentifier    datatype.Unsigned32 `avp:"Service-Identifier"`
+		RatingGroup          datatype.Unsigned32 `avp:"Rating-Group"`
+	}
+
+	type UEInfoSTRUCT struct {
+		UserEquipmentInfoType  datatype.Enumerated  `avp:"User-Equipment-Info-Type"`
+		UserEquipmentInfoValue datatype.OctetString `avp:"User-Equipment-Info-Value"`
+	}
+
 	type CCRPacket struct {
-		// SessionID         datatype.UTF8String       `avp:"Session-Id"`
-		// OriginHost        datatype.DiameterIdentity `avp:"Origin-Host"`
-		// OriginRealm       datatype.DiameterIdentity `avp:"Origin-Realm"`
-		// DestinationRealm  datatype.DiameterIdentity `avp:"Destination-Realm"`
-		// AuthApplicationID datatype.Unsigned32       `avp:"Auth-Application-Id"`
-		// ServiceContextID  string                    `avp:"Service-Context-Id"`
-		// CCRequestType     datatype.Enumerated       `avp:"CC-Request-Type"`
-		// CCRequestNumber   datatype.Unsigned32       `avp:"CC-Request-Number"`
-		// DestinationHost   datatype.DiameterIdentity `avp:"Destination-Host"`
-		// UserName          string                    `avp:"User-Name"`
-		// OriginStateID     datatype.Unsigned32       `avp:"Origin-State-Id"`
-		// EventTimestamp    datatype.Time             `avp:"Event-Timestamp"`
-		SubscriptionID1 SubscriptionIDSTRUCT `avp:"Subscription-Id"`
-		SubscriptionID2 SubscriptionIDSTRUCT `avp:"Subscription-Id"`
-		// SubscriptionID3   struct {
-		// 	SubscriptionIDType datatype.Enumerated `avp:"Subscription-Id-Type"`
-		// 	SubscriptionIDData datatype.UTF8String `avp:"Subscription-Id-Data"`
-		// } `avp:"Subscription-Id"`
+		SessionID                     datatype.UTF8String       `avp:"Session-Id"`
+		OriginHost                    datatype.DiameterIdentity `avp:"Origin-Host"`
+		OriginRealm                   datatype.DiameterIdentity `avp:"Origin-Realm"`
+		DestinationRealm              datatype.DiameterIdentity `avp:"Destination-Realm"`
+		AuthApplicationID             datatype.Unsigned32       `avp:"Auth-Application-Id"`
+		ServiceContextID              datatype.UTF8String       `avp:"Service-Context-Id"`
+		CCRequestType                 datatype.Enumerated       `avp:"CC-Request-Type"`
+		CCRequestNumber               datatype.Unsigned32       `avp:"CC-Request-Number"`
+		DestinationHost               datatype.DiameterIdentity `avp:"Destination-Host"`
+		UserName                      string                    `avp:"User-Name"`
+		OriginStateID                 datatype.Unsigned32       `avp:"Origin-State-Id"`
+		EventTimestamp                datatype.Time             `avp:"Event-Timestamp"`
+		SubscriptionID1               SubscriptionIDSTRUCT      `avp:"Subscription-Id"`
+		SubscriptionID2               SubscriptionIDSTRUCT      `avp:"Subscription-Id"`
+		MultipleServicesIndicator     datatype.Enumerated       `avp:"Multiple-Services-Indicator"`
+		MultipleServicesCreditControl MSCControlSTRUCT          `avp:"Multiple-Services-Credit-Control"`
+		UserEquipmentInfo             UEInfoSTRUCT              `avp:"User-Equipment-Info"`
 	}
 	return func(c diam.Conn, m *diam.Message) {
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>------------")
-		if !silent {
-			log.Printf("Received CCR from %s:\n%s", c.RemoteAddr(), m)
+		fmt.Println("\n>\n>\n>\n>\n>\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>------------")
+		mStr := fmt.Sprint(m)
+		re := regexp.MustCompile(`4175000\d*`)
+		imsi := re.FindString(mStr)
+		if silent {
+			log.Printf("Received CCR from %s:\n%s", c.RemoteAddr(), mStr)
 		}
+
+		f, errFile := os.OpenFile(fmt.Sprintf("cdrs/%v.log", imsi),
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if errFile != nil {
+			log.Println(errFile)
+		}
+		defer f.Close()
+		nowTime := time.Now()
+		if _, errFile := f.WriteString(fmt.Sprintf("\n%v\nREQUEST:\n%v\n", nowTime, mStr)); errFile != nil {
+			log.Println(errFile)
+		}
+
 		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>------------2")
 		var ccr CCRPacket
 		if err := m.Unmarshal(&ccr); err != nil {
@@ -170,15 +202,37 @@ func handleCCR(silent bool) diam.HandlerFunc {
 				c.RemoteAddr(), err, m)
 			return
 		}
+		ccr.SubscriptionID2.SubscriptionIDType = datatype.Enumerated(1)
+		ccr.SubscriptionID2.SubscriptionIDData = datatype.UTF8String(imsi)
 
 		fmt.Printf("\n+++++++++++++++++++++++++++++++++++ %+v\n", ccr)
 		fmt.Println("********************", ccr.SubscriptionID1)
 		a := m.Answer(diam.Success)
-		// a.NewAVP(avp.SessionID, avp.Mbit, 0, ccr.SessionID)
-		// a.NewAVP(avp.OriginHost, avp.Mbit, 0, ccr.DestinationHost)
-		// a.NewAVP(avp.OriginRealm, avp.Mbit, 0, ccr.DestinationRealm)
-		// a.NewAVP(avp.DestinationRealm, avp.Mbit, 0, ccr.OriginRealm)
-		// a.NewAVP(avp.DestinationHost, avp.Mbit, 0, ccr.OriginHost)
+		// a.NewAVP(avp.ResultCode, avp.Mbit, 0, datatype.Unsigned32(2001))
+		a.NewAVP(avp.SessionID, avp.Mbit, 0, ccr.SessionID)
+		a.NewAVP(avp.OriginHost, avp.Mbit, 0, ccr.DestinationHost)
+		a.NewAVP(avp.OriginRealm, avp.Mbit, 0, ccr.DestinationRealm)
+		a.NewAVP(avp.AuthApplicationID, avp.Mbit, 0, ccr.AuthApplicationID)
+		a.NewAVP(avp.CCRequestType, avp.Mbit, 0, ccr.CCRequestType)
+		a.NewAVP(avp.CCRequestNumber, avp.Mbit, 0, ccr.CCRequestNumber)
+		a.NewAVP(avp.MultipleServicesCreditControl, avp.Mbit, 0, &diam.GroupedAVP{
+			AVP: []*diam.AVP{
+				diam.NewAVP(avp.GrantedServiceUnit, avp.Mbit, 0, &diam.GroupedAVP{
+					AVP: []*diam.AVP{
+						diam.NewAVP(avp.CCTotalOctets, avp.Mbit, 0, datatype.Unsigned64(5242880)),
+					},
+				}),
+				diam.NewAVP(avp.RatingGroup, avp.Mbit, 0, datatype.Unsigned32(999)),
+				diam.NewAVP(avp.ServiceIdentifier, avp.Mbit, 0, datatype.Unsigned32(999)),
+				diam.NewAVP(avp.ResultCode, avp.Mbit, 0, datatype.Unsigned32(2001)),
+			},
+		})
+
+		if _, errFile := f.WriteString(fmt.Sprintf("\n%v --- Duration: %v\nANSWER:\n%v\n", time.Now(), time.Since(nowTime), a)); errFile != nil {
+			log.Println(errFile)
+		}
+
+		fmt.Printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n$$$$$$$$$$$$\n %+v\n", a)
 		_, err := a.WriteTo(c)
 		if err != nil {
 			log.Printf("Failed to write message to %s: %s\n%s\n",

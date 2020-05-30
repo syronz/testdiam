@@ -223,6 +223,16 @@ func sendInitiate(c diam.Conn, cfg *sm.Settings) error {
 			diam.NewAVP(avp.UserEquipmentInfoValue, avp.Mbit, 0, datatype.OctetString("33353739363531303137313934383031")),
 		},
 	})
+	m.NewAVP(avp.ServiceInformation, avp.Mbit, 10415, &diam.GroupedAVP{
+		AVP: []*diam.AVP{
+			diam.NewAVP(avp.PSInformation, avp.Mbit, 10415, &diam.GroupedAVP{
+				AVP: []*diam.AVP{
+					diam.NewAVP(avp.PDPAddress, avp.Mbit, 10415, datatype.Address("10.168.10.1")),
+					// diam.NewAVP(avp.PDPAddress, avp.Mbit, 10415, datatype.UTF8String("10.168.10.1")),
+				},
+			}),
+		},
+	})
 	log.Printf("Sending HMR to %s\n%s", c.RemoteAddr(), m)
 	_, err := m.WriteTo(c)
 	return err

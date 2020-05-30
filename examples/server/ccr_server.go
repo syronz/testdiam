@@ -156,6 +156,14 @@ func handleCCR(silent bool) diam.HandlerFunc {
 		UserEquipmentInfoValue datatype.OctetString `avp:"User-Equipment-Info-Value"`
 	}
 
+	type PSInformationSTRUCT struct {
+		PDPAddress datatype.Address `avp:"PDP-Address"`
+	}
+
+	type SInformationSTRUCT struct {
+		PSInformation PSInformationSTRUCT `avp:"PS-Information"`
+	}
+
 	type CCRPacket struct {
 		SessionID                     datatype.UTF8String       `avp:"Session-Id"`
 		OriginHost                    datatype.DiameterIdentity `avp:"Origin-Host"`
@@ -174,13 +182,14 @@ func handleCCR(silent bool) diam.HandlerFunc {
 		MultipleServicesIndicator     datatype.Enumerated       `avp:"Multiple-Services-Indicator"`
 		MultipleServicesCreditControl MSCControlSTRUCT          `avp:"Multiple-Services-Credit-Control"`
 		UserEquipmentInfo             UEInfoSTRUCT              `avp:"User-Equipment-Info"`
+		ServiceInformation            SInformationSTRUCT        `avp:"Service-Information"`
 	}
 	return func(c diam.Conn, m *diam.Message) {
 		fmt.Println("\n>\n>\n>\n>\n>\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>------------")
 		mStr := fmt.Sprint(m)
 		re := regexp.MustCompile(`4175000\d*`)
 		imsi := re.FindString(mStr)
-		if silent {
+		if !silent {
 			log.Printf("Received CCR from %s:\n%s", c.RemoteAddr(), mStr)
 		}
 
@@ -206,7 +215,7 @@ func handleCCR(silent bool) diam.HandlerFunc {
 		ccr.SubscriptionID2.SubscriptionIDData = datatype.UTF8String(imsi)
 
 		fmt.Printf("\n+++++++++++++++++++++++++++++++++++ %+v\n", ccr)
-		fmt.Println("********************", ccr.SubscriptionID1)
+		fmt.Println("********************", string(ccr.ServiceInformation.PSInformation.PDPAddress.Serialize()))
 		a := m.Answer(diam.Success)
 		// a.NewAVP(avp.ResultCode, avp.Mbit, 0, datatype.Unsigned32(2001))
 		a.NewAVP(avp.SessionID, avp.Mbit, 0, ccr.SessionID)
